@@ -3,7 +3,6 @@ package glock
 import (
 	"context"
 	"errors"
-	"github.com/ecodeclub/ekit/bean/option"
 	"github.com/ecodeclub/ekit/retry"
 	"github.com/google/uuid"
 	"github.com/meoying/dlock/internal/errs"
@@ -26,18 +25,13 @@ type Lock struct {
 	// 加锁的时候的单一一次超时
 	lockTimeout time.Duration
 	// 重试策略
-	lockRetry retry.Strategy
-
-	tableName string
-
-	mode string
+	LockRetry retry.Strategy
+	TableName string
+	Mode      string
 }
 
 // NewLock 创建一个分布式锁，使用 ModeInsertFirst
-func NewLock(db *gorm.DB,
-	key string,
-	expiration time.Duration,
-	opts ...option.Option[Lock]) *Lock {
+func NewLock(db *gorm.DB, key string, expiration time.Duration) *Lock {
 	strategy, _ := retry.NewExponentialBackoffRetryStrategy(time.Millisecond*100, time.Second, 10)
 	l := &Lock{
 		db: db,
@@ -49,17 +43,17 @@ func NewLock(db *gorm.DB,
 		},
 		key:        key,
 		expiration: expiration,
-		lockRetry:  strategy,
-		tableName:  defaultTableName,
-		mode:       ModeInsertFirst,
+		LockRetry:  strategy,
+		TableName:  defaultTableName,
+		// 默认使用 CASFirst 的模式
+		Mode: ModeCASFirst,
 	}
-	option.Apply(l, opts...)
 	l.value = l.valuer()
 	return l
 }
 
 func (l *Lock) Lock(ctx context.Context) error {
-	switch l.mode {
+	switch l.Mode {
 	case ModeInsertFirst:
 		return l.lockByInsertFirst(ctx)
 	case ModeCASFirst:
@@ -71,7 +65,7 @@ func (l *Lock) Lock(ctx context.Context) error {
 }
 
 func (l *Lock) lockByInsertFirst(ctx context.Context) error {
-	return retry.Retry(ctx, l.lockRetry, func() error {
+	return retry.Retry(ctx, l.LockRetry, func() error {
 		lctx, cancel := context.WithTimeout(ctx, l.lockTimeout)
 		defer cancel()
 
@@ -88,7 +82,7 @@ func (l *Lock) lockByInsertFirst(ctx context.Context) error {
 }
 
 func (l *Lock) lockByCASFirst(ctx context.Context) error {
-	return retry.Retry(ctx, l.lockRetry, func() error {
+	return retry.Retry(ctx, l.LockRetry, func() error {
 		lctx, cancel := context.WithTimeout(ctx, l.lockTimeout)
 		defer cancel()
 
@@ -209,11 +203,11 @@ func (l *Lock) Refresh(ctx context.Context) error {
 // DistributedLock 在数据库中保存的代表锁的东西
 // 注意这里我们不需要一个 expiration 字段
 type DistributedLock struct {
-	Id int64 `gorm:"primaryKey,autoIncrement"`
+	Id int64 `gorm:"primaryKey;autoIncrement"`
 	// 唯一索引
-	Key string `gorm:"unique,type=VARCHAR(256)"`
+	Key string `gorm:"unique;type:VARCHAR(256)"`
 	// 用固定长度的 CHAR 稍微有点性能提升
-	Value string `gorm:"type=CHAR(64)"`
+	Value string `gorm:"type:CHAR(64)"`
 
 	Status uint8
 

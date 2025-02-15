@@ -4,7 +4,6 @@ import (
 	"context"
 	_ "embed"
 	"errors"
-	"github.com/ecodeclub/ekit/bean/option"
 	"github.com/ecodeclub/ekit/retry"
 	"github.com/google/uuid"
 	"github.com/meoying/dlock/internal/errs"
@@ -32,39 +31,37 @@ type Lock struct {
 	expiration time.Duration
 
 	// 加锁的时候的单一一次超时
-	lockTimeout time.Duration
+	LockTimeout time.Duration
 	// 重试策略
-	lockRetry retry.Strategy
+	LockRetry retry.Strategy
 }
 
 // NewLock 创建一个分布式锁
 // rdb 是 Redis 客户端
 // 默认情况下采用指数退避的算法来重试。
-func NewLock(rdb redis.Cmdable, key string,
-	expiration time.Duration, opts ...option.Option[Lock]) *Lock {
+func NewLock(rdb redis.Cmdable, key string, expiration time.Duration) *Lock {
 	strategy, _ := retry.NewExponentialBackoffRetryStrategy(time.Millisecond*100, time.Second, 10)
 	l := &Lock{
 		client: rdb,
 		// 正常来说，访问 Redis 是一个快的事情，所以 200ms 是绰绰有余的
 		// 毕竟一般来说超过 10ms 就是 Redis 上的慢查询了
-		lockTimeout: time.Millisecond * 200,
+		LockTimeout: time.Millisecond * 200,
 		valuer: func() string {
 			return uuid.New().String()
 		},
 		key:        key,
 		expiration: expiration,
-		lockRetry:  strategy,
+		LockRetry:  strategy,
 	}
-	option.Apply(l, opts...)
 	l.value = l.valuer()
 	return l
 }
 
 // Lock 会尝试加锁。当加锁失败的时候，会尝试重试。
-// lockTimeout 参数会在这里用来控制访问 Redis 的超时时间
+// LockTimeout 参数会在这里用来控制访问 Redis 的超时时间
 func (l *Lock) Lock(ctx context.Context) error {
-	return retry.Retry(ctx, l.lockRetry, func() error {
-		lctx, cancel := context.WithTimeout(ctx, l.lockTimeout)
+	return retry.Retry(ctx, l.LockRetry, func() error {
+		lctx, cancel := context.WithTimeout(ctx, l.LockTimeout)
 		defer cancel()
 		res, err := l.client.Eval(lctx,
 			luaLock,
