@@ -7,7 +7,7 @@ import (
 
 // NewCASFirstClient 加锁的模式是 CAS First
 func NewCASFirstClient(db *gorm.DB) *glock.Client {
-	return glock.NewClient(db)
+	return glock.NewCASFirstClient(db)
 }
 
 // NewInsertFirstClient 加锁的模式是 Insert First
