@@ -30,8 +30,15 @@ type Lock struct {
 	Mode      string
 }
 
-// NewLock 创建一个分布式锁，使用 ModeInsertFirst
-func NewLock(db *gorm.DB, key string, expiration time.Duration) *Lock {
+func NewInsertFirstLock(db *gorm.DB, key string, expiration time.Duration) *Lock {
+	return newLock(db, key, expiration, ModeInsertFirst)
+}
+
+func NewCASFirstLock(db *gorm.DB, key string, expiration time.Duration) *Lock {
+	return newLock(db, key, expiration, ModeCASFirst)
+}
+
+func newLock(db *gorm.DB, key string, expiration time.Duration, mode string) *Lock {
 	strategy, _ := retry.NewExponentialBackoffRetryStrategy(time.Millisecond*100, time.Second, 10)
 	l := &Lock{
 		db: db,
@@ -45,8 +52,7 @@ func NewLock(db *gorm.DB, key string, expiration time.Duration) *Lock {
 		expiration: expiration,
 		LockRetry:  strategy,
 		TableName:  defaultTableName,
-		// 默认使用 CASFirst 的模式
-		Mode: ModeCASFirst,
+		Mode:       mode,
 	}
 	l.value = l.valuer()
 	return l

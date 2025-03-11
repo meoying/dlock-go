@@ -65,7 +65,7 @@ func (l *Lock) Lock(ctx context.Context) error {
 		defer cancel()
 		res, err := l.client.Eval(lctx,
 			luaLock,
-			[]string{l.key}, l.value, l.expiration).Result()
+			[]string{l.key}, l.value, l.expiration.Seconds()).Result()
 		// 加锁失败。虽然从理论上来说，此时加锁有可能是因为一些不可挽回的错误造成的
 		// 但是我们这里没有区分处理
 		if err != nil {
