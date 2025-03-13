@@ -2,7 +2,7 @@ package glock
 
 import (
 	"context"
-	"github.com/meoying/dlock"
+	"github.com/meoying/dlock-go"
 	"gorm.io/gorm"
 	"time"
 )

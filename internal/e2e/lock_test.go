@@ -4,8 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"errors"
-	"github.com/meoying/dlock"
-	"github.com/meoying/dlock/internal/errs"
+	"github.com/meoying/dlock-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -56,7 +55,7 @@ func (s *LockTestSuite) TestLock() {
 				return lock2
 			},
 			after:   func(t *testing.T) {},
-			wantErr: errs.ErrLocked,
+			wantErr: dlock.ErrLocked,
 		},
 		{
 			name: "加锁成功，原持有人崩溃",
@@ -142,7 +141,7 @@ func (s *LockTestSuite) TestUnLock() {
 				return lock1
 			},
 			after:   func(t *testing.T) {},
-			wantErr: errs.ErrLockNotHold,
+			wantErr: dlock.ErrLockNotHold,
 		},
 	}
 	for _, tc := range testCases {
@@ -203,7 +202,7 @@ func (s *LockTestSuite) TestRefresh() {
 				return lock1
 			},
 			after:   func(t *testing.T) {},
-			wantErr: errs.ErrLockNotHold,
+			wantErr: dlock.ErrLockNotHold,
 		},
 	}
 	for _, tc := range testCases {
