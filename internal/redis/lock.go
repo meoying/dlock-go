@@ -6,7 +6,7 @@ import (
 	"errors"
 	"github.com/ecodeclub/ekit/retry"
 	"github.com/google/uuid"
-	"github.com/meoying/dlock/internal/errs"
+	"github.com/meoying/dlock-go"
 	"github.com/redis/go-redis/v9"
 	"time"
 )
@@ -74,7 +74,7 @@ func (l *Lock) Lock(ctx context.Context) error {
 		if res == "OK" {
 			return nil
 		}
-		return errs.ErrLocked
+		return dlock.ErrLocked
 	})
 }
 
@@ -86,7 +86,7 @@ func (l *Lock) Refresh(ctx context.Context) error {
 		return err
 	}
 	if res != 1 {
-		return errs.ErrLockNotHold
+		return dlock.ErrLockNotHold
 	}
 	return nil
 }
@@ -95,13 +95,13 @@ func (l *Lock) Refresh(ctx context.Context) error {
 func (l *Lock) Unlock(ctx context.Context) error {
 	res, err := l.client.Eval(ctx, luaUnlock, []string{l.key}, l.value).Int64()
 	if errors.Is(err, redis.Nil) {
-		return errs.ErrLockNotHold
+		return dlock.ErrLockNotHold
 	}
 	if err != nil {
 		return err
 	}
 	if res != 1 {
-		return errs.ErrLockNotHold
+		return dlock.ErrLockNotHold
 	}
 	return nil
 }

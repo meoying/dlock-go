@@ -3,7 +3,7 @@ package e2e
 import (
 	"context"
 	"github.com/ecodeclub/ekit/retry"
-	glock "github.com/meoying/dlock/internal/gorm"
+	glock "github.com/meoying/dlock-go/internal/gorm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"

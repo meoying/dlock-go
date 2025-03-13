@@ -1,12 +1,12 @@
-module github.com/meoying/dlock
+module github.com/meoying/dlock-go
 
 go 1.23.1
 
 require (
-	github.com/ecodeclub/ekit v0.0.9-0.20250125143659-8fa75679c5b9
+	github.com/ecodeclub/ekit v0.0.9-0.20250308133608-b832b6e50738
 	github.com/google/uuid v1.6.0
-	github.com/redis/go-redis/v9 v9.7.0
-	github.com/stretchr/testify v1.8.4
+	github.com/redis/go-redis/v9 v9.7.1
+	github.com/stretchr/testify v1.10.0
 	gorm.io/driver/mysql v1.5.7
 	gorm.io/gorm v1.25.12
 )

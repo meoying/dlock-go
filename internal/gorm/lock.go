@@ -5,7 +5,7 @@ import (
 	"errors"
 	"github.com/ecodeclub/ekit/retry"
 	"github.com/google/uuid"
-	"github.com/meoying/dlock/internal/errs"
+	"github.com/meoying/dlock-go"
 	"gorm.io/gorm"
 	"time"
 )
@@ -142,7 +142,7 @@ func (l *Lock) casLock(ctx context.Context) error {
 	// 还在被人拿着
 	if lock.Status == StatusLocked &&
 		now < lock.Expiration {
-		return errs.ErrLocked
+		return dlock.ErrLocked
 	}
 	// 到这里有两种可能，
 	// 1. Status 是 Unlocked
@@ -165,7 +165,7 @@ func (l *Lock) casLock(ctx context.Context) error {
 		return nil
 	}
 	// 刚刚被人抢走
-	return errs.ErrLocked
+	return dlock.ErrLocked
 }
 
 func (l *Lock) Unlock(ctx context.Context) error {
@@ -185,7 +185,7 @@ func (l *Lock) Unlock(ctx context.Context) error {
 	if res.RowsAffected > 0 {
 		return nil
 	}
-	return errs.ErrLockNotHold
+	return dlock.ErrLockNotHold
 }
 
 func (l *Lock) Refresh(ctx context.Context) error {
@@ -203,7 +203,7 @@ func (l *Lock) Refresh(ctx context.Context) error {
 	if res.RowsAffected > 0 {
 		return nil
 	}
-	return errs.ErrLockNotHold
+	return dlock.ErrLockNotHold
 }
 
 // DistributedLock 在数据库中保存的代表锁的东西
