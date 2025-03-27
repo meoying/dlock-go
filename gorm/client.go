@@ -1,7 +1,7 @@
 package gorm
 
 import (
-	glock "github.com/meoying/dlock/internal/gorm"
+	glock "github.com/meoying/dlock-go/internal/gorm"
 	"gorm.io/gorm"
 )
 

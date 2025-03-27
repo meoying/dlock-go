@@ -2,8 +2,8 @@ package rlock
 
 import (
 	"context"
-	"github.com/meoying/dlock"
-	redis "github.com/redis/go-redis/v9"
+	"github.com/meoying/dlock-go"
+	"github.com/redis/go-redis/v9"
 	"time"
 )
 

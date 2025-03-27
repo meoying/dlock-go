@@ -2,7 +2,7 @@ package e2e
 
 import (
 	"context"
-	rlock "github.com/meoying/dlock/internal/redis"
+	rlock "github.com/meoying/dlock-go/internal/redis"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
