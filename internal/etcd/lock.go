@@ -65,7 +65,7 @@ func (l *etcdLock) Lock(ctx context.Context) (err error) {
 			select {
 			case <-cl:
 				return
-			case <-ctx.Done():
+			case <-cctx.Done():
 				return
 			case <-ch:
 				continue
