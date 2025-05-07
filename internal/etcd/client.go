@@ -28,7 +28,6 @@ func (c *etcdClient) NewLock(_ context.Context, key string, expiration time.Dura
 		client:     c.client,
 		key:        key,
 		expiration: expiration,
-		isLocked:   false,
 
 		lockRetry:   strategy,
 		lockTimeout: LockTimeout,

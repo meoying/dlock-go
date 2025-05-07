@@ -39,4 +39,7 @@ func (s *EtcdLockTestSuite) SetupSuite() {
 }
 
 func (s *EtcdLockTestSuite) TearDownTest() {
+	if s.c != nil {
+		_ = s.c.Close()
+	}
 }

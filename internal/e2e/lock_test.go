@@ -128,7 +128,7 @@ func (s *LockTestSuite) TestUnLock() {
 				require.NoError(t, err)
 
 				// 锁到期未续约
-				time.Sleep(time.Second * 2)
+				time.Sleep(time.Second * 5)
 
 				ctx2, cancel2 := context.WithTimeout(context.Background(), time.Second*3)
 				defer cancel2()
@@ -189,7 +189,7 @@ func (s *LockTestSuite) TestRefresh() {
 				require.NoError(t, err)
 
 				// 锁到期未续约
-				time.Sleep(time.Second * 2)
+				time.Sleep(time.Second * 5)
 
 				ctx2, cancel2 := context.WithTimeout(context.Background(), time.Second*3)
 				defer cancel2()
