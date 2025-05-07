@@ -55,7 +55,9 @@ func (l *etcdLock) Lock(ctx context.Context) (err error) {
 	cl := make(chan struct{})
 	defer close(cl)
 	go func() {
-		ch, err := l.client.KeepAlive(ctx, leaseResp.ID)
+		cctx, cancelFunc := context.WithCancel(ctx)
+		defer cancelFunc()
+		ch, err := l.client.KeepAlive(cctx, leaseResp.ID)
 		if err != nil {
 			return
 		}
@@ -100,23 +102,6 @@ func (l *etcdLock) Lock(ctx context.Context) (err error) {
 
 func (l *etcdLock) Unlock(ctx context.Context) error {
 
-	// 这里其实没什么必要，因为etcd解除租约后会直接删除key
-	//sid := strconv.FormatInt(int64(l.leaseID), 10)
-	//withTimeoutCtx, cancel := context.WithTimeout(ctx, l.lockTimeout)
-	//defer cancel()
-	//txn := l.client.Txn(withTimeoutCtx).
-	//	If(clientv3.Compare(clientv3.CreateRevision(l.key), "!=", 0),
-	//		clientv3.Compare(clientv3.Value(l.key), "=", sid)).
-	//	Then(clientv3.OpDelete(l.key))
-	//
-	//txnResp, err := txn.Commit()
-	//if err != nil {
-	//	return fmt.Errorf("释放锁失败: %v", err)
-	//}
-	//
-	//if !txnResp.Succeeded {
-	//	return dlock.ErrLockNotHold
-	//}
 	withTimeoutCtx, cancel := context.WithTimeout(ctx, l.lockTimeout)
 	defer cancel()
 	_, err := l.client.Revoke(withTimeoutCtx, l.leaseID)
@@ -126,11 +111,11 @@ func (l *etcdLock) Unlock(ctx context.Context) error {
 		}
 		return dlock.ErrLockNotHold
 	}
-
 	return nil
 }
 
 func (l *etcdLock) Refresh(ctx context.Context) error {
+
 	withTimeoutCtx, cancel := context.WithTimeout(ctx, l.lockTimeout)
 	defer cancel()
 	_, err := l.client.KeepAliveOnce(withTimeoutCtx, l.leaseID)

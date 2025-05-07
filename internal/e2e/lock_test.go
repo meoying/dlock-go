@@ -69,11 +69,11 @@ func (s *LockTestSuite) TestLock() {
 				err = lock1.Lock(ctx1)
 				require.NoError(t, err)
 				// 模拟到期未续约
-				time.Sleep(time.Second * 2)
+				time.Sleep(time.Second * 5)
 
 				ctx2, cancel2 := context.WithTimeout(context.Background(), time.Second*3)
 				defer cancel2()
-				lock2, err := s.client.NewLock(ctx2, key, time.Minute)
+				lock2, err := s.client.NewLock(ctx2, key, time.Second*10)
 				require.NoError(t, err)
 				return lock2
 			},
@@ -133,7 +133,7 @@ func (s *LockTestSuite) TestUnLock() {
 				ctx2, cancel2 := context.WithTimeout(context.Background(), time.Second*3)
 				defer cancel2()
 				// 让另一个人持有锁
-				lock2, err := s.client.NewLock(ctx2, key, time.Minute)
+				lock2, err := s.client.NewLock(ctx2, key, time.Second*10)
 				require.NoError(t, err)
 				err = lock2.Lock(ctx2)
 				require.NoError(t, err)
@@ -194,7 +194,7 @@ func (s *LockTestSuite) TestRefresh() {
 				ctx2, cancel2 := context.WithTimeout(context.Background(), time.Second*3)
 				defer cancel2()
 				// 让另一个人持有锁
-				lock2, err := s.client.NewLock(ctx2, key, time.Minute)
+				lock2, err := s.client.NewLock(ctx2, key, time.Second*10)
 				require.NoError(t, err)
 				err = lock2.Lock(ctx2)
 				require.NoError(t, err)

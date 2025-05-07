@@ -22,7 +22,7 @@ func NewEtcdClient(c *clientv3.Client) dlock.Client {
 // NewLock 初始化锁实例
 func (c *etcdClient) NewLock(_ context.Context, key string, expiration time.Duration) (dlock.Lock, error) {
 	strategy, _ := retry.NewExponentialBackoffRetryStrategy(time.Millisecond*100, time.Second, 10)
-	LockTimeout := time.Millisecond * 300
+	lt := time.Millisecond * 200
 
 	lock := etcdLock{
 		client:     c.client,
@@ -30,7 +30,7 @@ func (c *etcdClient) NewLock(_ context.Context, key string, expiration time.Dura
 		expiration: expiration,
 
 		lockRetry:   strategy,
-		lockTimeout: LockTimeout,
+		lockTimeout: lt,
 	}
 
 	return &lock, nil
