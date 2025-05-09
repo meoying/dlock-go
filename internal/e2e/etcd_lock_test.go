@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"context"
 	etcd_lock "github.com/meoying/dlock-go/internal/etcd"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -35,11 +36,13 @@ type EtcdLockTestSuite struct {
 }
 
 func (s *EtcdLockTestSuite) SetupSuite() {
-
+	if s.c != nil {
+		_, _ = s.c.Delete(context.Background(), "", clientv3.WithPrefix())
+	}
 }
 
 func (s *EtcdLockTestSuite) TearDownTest() {
 	if s.c != nil {
-		_ = s.c.Close()
+		_, _ = s.c.Delete(context.Background(), "", clientv3.WithPrefix())
 	}
 }
