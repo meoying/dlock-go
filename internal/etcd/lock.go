@@ -33,6 +33,7 @@ type etcdLock struct {
 	lockTimeout time.Duration
 }
 
+// Lock 加锁，成功后才能进行 Unlock
 func (l *etcdLock) Lock(ctx context.Context) (err error) {
 	isLocked := false
 	c1, cancel1 := context.WithTimeout(ctx, l.lockTimeout)
