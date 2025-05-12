@@ -7,14 +7,11 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/redis/go-redis/v9 v9.7.3
 	github.com/stretchr/testify v1.10.0
-	go.etcd.io/etcd/client/v3 v3.5.21
+	go.etcd.io/etcd/client/v3 v3.5.20
 	golang.org/x/net v0.39.0
 	gorm.io/driver/mysql v1.5.7
 	gorm.io/gorm v1.26.0
 )
-
-replace google.golang.org/grpc => google.golang.org/grpc v1.72.0
-replace github.com/coreos/bbolt => go.etcd.io/bbolt v1.4.0
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect

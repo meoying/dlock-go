@@ -3,23 +3,17 @@ package etcd_lock
 import (
 	"errors"
 	"fmt"
+	"github.com/ecodeclub/ekit/retry"
+	"github.com/meoying/dlock-go"
+	"github.com/meoying/dlock-go/internal/pkg"
+	clientv3 "go.etcd.io/etcd/client/v3"
+	"golang.org/x/net/context"
 	"io"
 	"strconv"
 	"time"
-
-	"github.com/ecodeclub/ekit/retry"
-	"github.com/meoying/dlock-go"
-	clientv3 "go.etcd.io/etcd/client/v3"
-	"golang.org/x/net/context"
 )
 
 var _ dlock.Lock = (*etcdLock)(nil)
-
-// noCopy 是一个特殊的类型，用于防止结构体被复制
-type noCopy struct{}
-
-func (*noCopy) Lock()   {}
-func (*noCopy) Unlock() {}
 
 // etcdLock 结构体
 type etcdLock struct {
@@ -27,7 +21,9 @@ type etcdLock struct {
 	leaseID    clientv3.LeaseID
 	key        string
 	expiration time.Duration
-	_          noCopy
+	cf         context.CancelFunc
+	_          pkg.NoCopy
+	afterFunc  *time.Timer
 
 	lockRetry   retry.Strategy
 	lockTimeout time.Duration
@@ -43,28 +39,21 @@ func (l *etcdLock) Lock(ctx context.Context) (err error) {
 	if err != nil {
 		return fmt.Errorf("创建租约失败: %w", err)
 	}
+	var cf1 context.CancelFunc
 	defer func() {
 		c2, cancel2 := context.WithTimeout(context.Background(), l.lockTimeout)
 		defer cancel2()
 		if !isLocked {
+			defer cf1()
 			_, err1 := l.client.Revoke(c2, leaseResp.ID)
 			if err1 != nil {
 				err = fmt.Errorf("%w ,且解除租约失败 %w", err, err1)
 			}
-		} else {
-			_, _ = l.client.KeepAliveOnce(c2, leaseResp.ID)
-		}
-	}()
-
-	var cf context.CancelFunc
-	defer func() {
-		if cf != nil {
-			cf()
 		}
 	}()
 	go func() {
-		cctx, cancelFunc := context.WithCancel(ctx)
-		cf = cancelFunc
+		cctx, cancelFunc := context.WithCancel(context.Background())
+		cf1 = cancelFunc
 		defer cancelFunc()
 		ch, err := l.client.KeepAlive(cctx, leaseResp.ID)
 		if err != nil {
@@ -105,14 +94,18 @@ func (l *etcdLock) Lock(ctx context.Context) (err error) {
 		}
 
 		l.leaseID = leaseResp.ID
+		l.cf = cf1
+		l.afterFunc = time.AfterFunc(l.expiration, func() { l.cf() })
+
 		isLocked = true
 		return nil
 	})
 }
 
-// Unlock 释放锁 只能保证当前 leaseID 释放对应的key，没办法保证用户 Lock 发生err后，直接 Unlock 会不会接触当前leaseID的key
+// Unlock 释放锁 只能保证当前 leaseID 释放对应的key，没办法保证用户 Lock 发生err后，直接 Unlock 会不会解除当前leaseID的key
 func (l *etcdLock) Unlock(ctx context.Context) error {
-
+	defer l.cf()
+	defer l.afterFunc.Stop()
 	withTimeoutCtx, cancel := context.WithTimeout(ctx, l.lockTimeout)
 	defer cancel()
 	_, err := l.client.Revoke(withTimeoutCtx, l.leaseID)
@@ -129,7 +122,7 @@ func (l *etcdLock) Unlock(ctx context.Context) error {
 }
 
 func (l *etcdLock) Refresh(ctx context.Context) error {
-
+	defer l.afterFunc.Reset(l.expiration)
 	withTimeoutCtx, cancel := context.WithTimeout(ctx, l.lockTimeout)
 	defer cancel()
 	_, err := l.client.KeepAliveOnce(withTimeoutCtx, l.leaseID)
