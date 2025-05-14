@@ -216,3 +216,39 @@ func (s *LockTestSuite) TestRefresh() {
 		})
 	}
 }
+
+func (s *LockTestSuite) TestAutoExpiration() {
+	testCases := []struct {
+		name    string
+		before  func(t *testing.T) dlock.Lock
+		after   func(t *testing.T)
+		wantErr error
+	}{
+		{
+			name: "测试自动过期",
+			before: func(t *testing.T) dlock.Lock {
+				ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+				defer cancel()
+				lock, err := s.client.NewLock(ctx, "refresh-success-key", time.Second*4)
+				require.NoError(t, err)
+				err = lock.Lock(ctx)
+				require.NoError(t, err)
+
+				time.Sleep(time.Second * 5)
+				return lock
+			},
+			after:   func(t *testing.T) {},
+			wantErr: dlock.ErrLockNotHold,
+		},
+	}
+	for _, tc := range testCases {
+		s.T().Run(tc.name, func(t *testing.T) {
+			lock := tc.before(t)
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+			err := lock.Refresh(ctx)
+			cancel()
+			assert.True(t, errors.Is(err, tc.wantErr))
+			tc.after(t)
+		})
+	}
+}
