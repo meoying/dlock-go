@@ -29,7 +29,7 @@ type etcdLock struct {
 
 // Lock 加锁，成功后才能进行 Unlock
 func (l *etcdLock) Lock(ctx context.Context) (err error) {
-	isLocked := false
+	needRevoke := true
 	c1, cancel1 := context.WithTimeout(ctx, l.lockTimeout)
 	defer cancel1()
 	// 这里可以引入重试机制
@@ -40,16 +40,13 @@ func (l *etcdLock) Lock(ctx context.Context) (err error) {
 	defer func() {
 		c2, cancel2 := context.WithTimeout(context.Background(), l.lockTimeout)
 		defer cancel2()
-		if !isLocked {
+		// 这里个人认为其实可以不用控制，只要是检测没有加锁成功直接解除续约
+		// 因为，返回err了以后，调用方都认为锁没有获取到，那么就应该是是需要重试。
+		// 而哪怕是这里解除续约如果超时，最坏的结果也是锁没有释放，但是不会有其他业务获取到锁。
+		if needRevoke {
 			_, err1 := l.client.Revoke(c2, leaseResp.ID)
 			if err1 != nil {
 				err = fmt.Errorf("%w ,且解除租约失败 %w", err, err1)
-			}
-		} else {
-			_, err1 := l.client.KeepAliveOnce(c2, leaseResp.ID)
-			if err1 != nil {
-				// 这里失败了，一般是重试时间太长了，导致租约过期了，让用户重新加锁吧
-				err = fmt.Errorf("%w ,租约已到期，请重新加锁 %w", err, err1)
 			}
 		}
 	}()
@@ -66,17 +63,17 @@ func (l *etcdLock) Lock(ctx context.Context) (err error) {
 			Then(clientv3.OpPut(l.key, sid, clientv3.WithLease(leaseResp.ID)))
 
 		txnResp, err := txn.Commit()
+		// 超时连不上集群才会到这里
 		if err != nil {
 			return fmt.Errorf("etcd加锁失败: %w", err)
 		}
-
+		// 这里是竞争失败
 		if !txnResp.Succeeded {
 			return dlock.ErrLocked
 		}
 
 		l.leaseID = leaseResp.ID
-
-		isLocked = true
+		needRevoke = false
 		return nil
 	})
 }

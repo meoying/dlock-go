@@ -19,7 +19,7 @@ func NewEtcdClient(c *clientv3.Client) dlock.Client {
 	return &etcdClient{client: c}
 }
 
-// NewLock 初始化锁实例
+// NewLock 初始化锁实例 expiration 代表锁的过期时间，从调用 NewLock 开始计算
 func (c *etcdClient) NewLock(_ context.Context, key string, expiration time.Duration) (dlock.Lock, error) {
 	strategy, _ := retry.NewExponentialBackoffRetryStrategy(time.Millisecond*100, time.Second, 10)
 	lt := time.Millisecond * 200
